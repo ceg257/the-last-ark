@@ -61,6 +61,19 @@ describe('game lifecycle and rules', () => {
 });
 
 describe('fixed clock and input', () => {
+  it('toggles F and Enter once per press, retaining fields on release and focus loss', () => {
+    const k = new Keyboard(() => {});
+    k.keyDown('KeyF'); k.keyUp('KeyF');
+    expect(k.read().fields).toEqual([true, false]);
+    k.keyDown('Enter'); k.keyDown('Enter', true); k.keyDown('Enter'); k.keyUp('Enter');
+    expect(k.read().fields).toEqual([true, true]);
+    k.keyDown('KeyW'); k.releaseKeys();
+    expect(k.read()).toEqual({ ...NO_CONTROLS, fields: [true, true] });
+    k.keyDown('KeyF'); k.keyUp('KeyF'); expect(k.read().fields).toEqual([false, true]);
+    k.keyDown('Enter'); k.keyUp('Enter'); expect(k.read().fields).toEqual([false, false]);
+    k.keyDown('KeyF'); k.keyUp('KeyF'); k.keyDown('KeyR');
+    expect(k.read().fields).toEqual([false, false]);
+  });
   it('produces the same simulated state at 30, 60 and 144 rendering FPS', () => {
     const states = [30, 60, 144].map(fps => {
       const g = createGame(firstLevel); togglePause(g); const clock = new FixedClock();

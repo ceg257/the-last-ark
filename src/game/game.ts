@@ -13,12 +13,12 @@ export function togglePause(game: GameState): void {
 export function pause(game: GameState): void { if (game.phase === 'running') togglePause(game); }
 function lose(game: GameState, message: string): void { game.phase = 'lost'; game.message = `${message} · R 重试`; }
 export function stepGame(game: GameState, input: Controls, dt = FIXED_DT): void {
+  game.players.forEach((player, i) => { player.active = input.fields[i]; });
   if (game.phase === 'won' || game.phase === 'lost') return;
   game.players.forEach((player, i) => {
     const movement = scale(limit(input.movement[i], 1), player.speed * dt);
     const next = add(player.position, movement);
     player.position = { x: clamp(next.x, player.radius, game.level.width - player.radius), y: clamp(next.y, player.radius, game.level.height - player.radius) };
-    player.active = input.fields[i];
   });
   if (game.phase !== 'running') return;
   const previous = game.bodies.map(body => ({ ...body.position }));

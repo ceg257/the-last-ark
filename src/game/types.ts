@@ -9,7 +9,10 @@ export interface Body {
   affectedByFields: boolean;
   /** 1 for small bodies; near-zero for massive bodies (gameplay approximation). */
   response: number;
-  gravity?: Field;
+  /** Relative density; mass is proportional to sphere volume. Defaults: 1, black hole 40. */
+  density?: number;
+  /** World units/second; defaults to the global celestial-body cap. */
+  maxSpeed?: number;
   captureRadius?: number;
 }
 export interface Player { id: 'attractor' | 'repulsor'; position: Vec2; radius: number; speed: number; field: Field; active: boolean }

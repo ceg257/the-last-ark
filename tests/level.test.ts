@@ -5,6 +5,7 @@ import { NO_CONTROLS } from '../src/game/types';
 import { firstLevel } from '../src/levels/first';
 import type { Vec2 } from '../src/physics/vector';
 import { length } from '../src/physics/vector';
+import { predictTrajectory } from '../src/game/trajectory';
 
 /** Uses only real eight-direction movement while paused: never teleports players or edits the ship. */
 function positionPlayer(game: GameState, index: 0 | 1, target: Vec2): void {
@@ -20,6 +21,25 @@ function positionPlayer(game: GameState, index: 0 | 1, target: Vec2): void {
 }
 
 describe('playable first level, using only player movement and fields', () => {
+  it.each([410, 420, 430])('can plan and verify a winning braking trajectory after launch cutoff x=%s', launchX => {
+    const g = createGame(firstLevel); positionPlayer(g, 1, { x: 1050, y: 420 }); togglePause(g);
+    while (g.bodies[0].position.x < launchX && g.phase === 'running') stepGame(g, { ...NO_CONTROLS, fields: [true, false] });
+    while (g.bodies[0].position.x < 650 && g.phase === 'running') stepGame(g, NO_CONTROLS);
+    expect(g.phase).toBe('running'); pause(g); positionPlayer(g, 0, { x: 690, y: 320 });
+    let forecast = predictTrajectory(g);
+    for (let trial = 0; trial < 30; trial++) {
+      // Same operation as pausing, toggling P1 off/P2 on and inspecting the preview.
+      stepGame(g, { ...NO_CONTROLS, fields: [false, true] });
+      forecast = predictTrajectory(g);
+      if (forecast.outcome === 'won') break;
+      togglePause(g);
+      for (let frame = 0; frame < 6; frame++) stepGame(g, { ...NO_CONTROLS, fields: [true, false] });
+      pause(g);
+    }
+    expect(forecast.outcome).toBe('won'); togglePause(g);
+    for (let i = 0; i < 720 && g.phase === 'running'; i++) stepGame(g, { ...NO_CONTROLS, fields: [false, true] });
+    expect(g.phase).toBe('won'); expect(g.bodies[0].position).toEqual(forecast.points.at(-1));
+  });
   for (const launchX of [410, 420, 430]) for (const turnX of [640, 650, 660]) for (const aimY of [380, 390, 400]) {
     it(`wins with launch cutoff x=${launchX}, turn x=${turnX}, tangent y=${aimY}`, () => {
       const g = createGame(firstLevel);
