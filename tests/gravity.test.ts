@@ -19,6 +19,25 @@ function flyby(offset: number, planetSpeed: number) {
 }
 
 describe('volume-derived gravity and orbital integration', () => {
+  it.each([0, 1] as const)('player %s visibly moves the large planet, more slowly than a small body', playerIndex => {
+    const planet = structuredClone(firstLevel.bodies[1]);
+    const small = { ...structuredClone(planet), id: 'small', kind: 'asteroid' as const, radius: 18, response: 1 };
+    const players = structuredClone(firstLevel.players);
+    players[playerIndex].active = true;
+    players[playerIndex].position = { x: playerIndex === 0 ? 450 : 650, y: 340 };
+    for (let i = 0; i < 120; i++) {
+      integrate([planet], players, 1 / 60);
+      integrate([small], players, 1 / 60);
+    }
+    const displacement = 550 - planet.position.x;
+    expect(displacement).toBeGreaterThan(15);
+    expect(displacement).toBeLessThan(550 - small.position.x);
+    expect(planet.velocity.x).toBeLessThan(-10);
+    const before = planet.position.x;
+    players[playerIndex].active = false;
+    integrate([planet], players, 1 / 60);
+    expect(planet.position.x).toBeLessThan(before); // retains inertia when the field is off
+  });
   it('gives eight times the mass/source strength for twice the radius at equal density', () => {
     const a = { ...structuredClone(firstLevel.bodies[2]), radius: 20 };
     const b = { ...structuredClone(a), radius: 40 };

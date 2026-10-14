@@ -44,7 +44,10 @@ describe('field forces', () => {
     g.players[0].position = { x: 500, y: 340 }; g.players[0].active = true;
     const ship = g.bodies[0]; const planet = g.bodies[1];
     ship.position = { ...planet.position }; ship.velocity = { x: 0, y: 0 };
-    integrate([ship, planet], g.players, 1 / 60);
+    // Measure response to the same player field independently; overlapping bodies
+    // also attract one another once their half-step positions separate.
+    integrate([ship], g.players, 1 / 60);
+    integrate([planet], g.players, 1 / 60);
     expect(planet.velocity.x / ship.velocity.x).toBeCloseTo(planet.response);
     ship.affectedByFields = false; ship.velocity = { x: 0, y: 0 };
     integrate([ship], g.players, 1 / 60); expect(ship.velocity).toEqual({ x: 0, y: 0 });

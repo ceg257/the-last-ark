@@ -10,7 +10,7 @@ export const firstLevel: Level = {
   ],
   bodies: [
     { id: 'ark', kind: 'ship', position: { x: 120, y: 340 }, velocity: { x: 65, y: 0 }, radius: 8, affectedByFields: true, response: 1 },
-    { id: 'planet', kind: 'planet', position: { x: 550, y: 340 }, velocity: { x: 0, y: 0 }, radius: 65, density: 1, affectedByFields: true, response: 0.0001 },
+    { id: 'planet', kind: 'planet', position: { x: 550, y: 340 }, velocity: { x: 0, y: 0 }, radius: 65, density: 1, affectedByFields: true, response: 0.18 },
     { id: 'asteroid', kind: 'asteroid', position: { x: 750, y: 490 }, velocity: { x: -3, y: -1 }, radius: 18, affectedByFields: true, response: 1 },
   ],
 };

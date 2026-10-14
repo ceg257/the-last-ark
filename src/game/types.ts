@@ -7,7 +7,7 @@ export interface Body {
   velocity: Vec2;
   radius: number;
   affectedByFields: boolean;
-  /** 1 for small bodies; near-zero for massive bodies (gameplay approximation). */
+  /** Acceleration response: 1 for small bodies, 0.18 for the movable first-level planet. */
   response: number;
   /** Relative density; mass is proportional to sphere volume. Defaults: 1, black hole 40. */
   density?: number;
