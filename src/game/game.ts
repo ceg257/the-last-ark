@@ -1,6 +1,6 @@
 import type { Controls, GameState, Level } from './types';
 import { finite, length, sub } from '../physics/vector';
-import { movePlayer } from '../input/movement';
+import { applyPlayerIntent } from '../physics/player';
 import { integrate } from '../physics/world';
 import { sweptOverlap } from '../physics/collision';
 import { capabilities } from './entities';
@@ -42,8 +42,7 @@ export function stepGame(game: GameState, input: Controls, dt = FIXED_DT): void 
   if (!Number.isFinite(dt) || dt <= 0) return;
   const previous = new Map([...game.bodies, ...game.players].map(b => [b.id, { ...b.position }]));
   game.players.forEach((player, i) => {
-    player.active = input.fields[i];
-    movePlayer(player, input.movement[i], dt);
+    applyPlayerIntent(player, input.players[i], dt);
   });
   if (game.phase !== 'running') return;
   const invalid = () => game.bodies.some(b => !finite(b.position) || !finite(b.velocity)) || game.players.some(p => !finite(p.position) || !finite(p.velocity));

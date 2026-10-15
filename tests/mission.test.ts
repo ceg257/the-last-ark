@@ -113,7 +113,7 @@ describe('layered scene state machine',()=>{
   it('distinguishes retry from complete restart and resets input toggles',()=>{
     const actions:string[]=[],k=new Keyboard(a=>actions.push(a));
     k.keyDown('KeyF');k.keyUp('KeyF');k.keyDown('KeyR',false,true);
-    expect(actions).toEqual(['restart']);expect(k.read().fields).toEqual([false,false]);
+    expect(actions).toEqual(['restart']);expect(k.read().players.map(p => p.abilityActive)).toEqual([false,false]);
     const c=new SceneController();c.enter('prototype');c.game!.bodies[0].position.x=-8000;saveCheckpoint(c.game!,'remote');
     c.game!.phase='failed';c.retry();expect(c.game!.bodies[0].position.x).toBe(-8000);
     c.retry(true);expect(c.game!.bodies[0].position.x).toBe(120);

@@ -39,6 +39,8 @@ export interface Body extends Entity {
 export interface Player extends Entity {
   kind: 'player'; id: 'attractor' | 'repulsor'; speed: number; field: Field; active: boolean;
   velocity: Vec2; acceleration: number; braking: number;
+  /** Future world-target control: near-target easing time; has no effect on keyboard axes. */
+  targetArrivalSeconds?: number;
 }
 export interface Port { position: Vec2; radius: number; maxEntrySpeed: number }
 export interface Level {
@@ -63,5 +65,5 @@ export interface GameState {
   pendingScene?: SceneId;
   checkpoint?: { id: string; snapshot: Omit<GameState, 'checkpoint'> };
 }
-export interface Controls { movement: [Vec2, Vec2]; fields: [boolean, boolean] }
-export const NO_CONTROLS: Controls = { movement: [{ x: 0, y: 0 }, { x: 0, y: 0 }], fields: [false, false] };
+export type { Controls } from '../input/intent';
+export { NO_CONTROLS } from '../input/intent';

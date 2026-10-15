@@ -1,3 +1,4 @@
+import { fieldControls } from './helpers';
 import { describe,expect,it } from 'vitest';
 import { createBody } from '../src/game/entities';
 import { integrate } from '../src/physics/world';
@@ -104,7 +105,7 @@ describe('selective celestial stabilization',()=>{
   });
   it('combines with fixed steps, pause, checkpoint and prediction without state leakage',()=>{
     const g=createGame(firstLevel);g.players[0].active=true;togglePause(g);
-    for(let i=0;i<200;i++)stepGame(g,{...NO_CONTROLS,fields:[true,false]});
+    for(let i=0;i<200;i++)stepGame(g,fieldControls([true,false]));
     saveCheckpoint(g,'forced');const snapshot=structuredClone(g);g.phase='paused';
     for(let i=0;i<100;i++)stepGame(g,NO_CONTROLS);expect(g.bodies).toEqual(snapshot.bodies);
     const restored=retryGame(g);expect(restored.bodies).toEqual(snapshot.bodies);

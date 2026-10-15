@@ -2,6 +2,7 @@ import './style.css';
 import { pause } from './game/game';
 import { FixedClock } from './game/clock';
 import { Keyboard } from './input/keyboard';
+import { PlayerInputs } from './input/sources';
 import { render, renderTitle, telemetry } from './render/canvas';
 import { predictTrajectory } from './game/trajectory';
 import type { Trajectory } from './game/trajectory';
@@ -30,12 +31,14 @@ const keyboard = new Keyboard(action => {
   if (action === 'toggle') scenes.toggle();
   if (action === 'reset' || action === 'restart') scenes.retry(action === 'restart');
   if (action === 'title') scenes.enter('title');
-  if (action === 'blur' && scenes.game) pause(scenes.game);
+  if (action === 'blur') { inputs.releaseMovement(); if (scenes.game) pause(scenes.game); }
   if (action === 'zoom-in') setZoom(camera, camera.zoom * 1.2);
   if (action === 'zoom-out') setZoom(camera, camera.zoom / 1.2);
   if (action === 'zoom-reset') setZoom(camera, 0.8);
   lastPredictionTime = -Infinity; clock.reset();
 });
+// Each player owns a channel. Future adapters can replace either source independently.
+const inputs = new PlayerInputs([keyboard.source(0), keyboard.source(1)]);
 const detach = keyboard.attach(window);
 const onStart = () => { scenes.enter('prototype'); canvas.focus(); };
 start.addEventListener('click',onStart);
@@ -48,7 +51,7 @@ function resize(): void {
 const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
 function syncScene(): void {
   if (revision === scenes.revision) return;
-  revision = scenes.revision; keyboard.clear(); clock.reset(); lastPredictionTime = -Infinity;
+  revision = scenes.revision; inputs.reset(); keyboard.clear(); clock.reset(); lastPredictionTime = -Infinity;
   const ship = scenes.game?.bodies.find(b => b.kind === 'ship');
   if (ship) follow(camera,ship.position,ship.velocity,0,true);
   start.hidden = scenes.scene !== 'title';
@@ -58,7 +61,7 @@ let frameId = 0;
 function frame(now: number): void {
   const seconds = previousTime === undefined ? 0 : (now - previousTime) / 1000; previousTime = now;
   syncScene();
-  clock.advance(seconds, () => { scenes.step(keyboard.read()); syncScene(); });
+  clock.advance(seconds, () => { scenes.step(inputs.read()); syncScene(); });
   const game = scenes.game;
   ctx!.setTransform(dpr,0,0,dpr,0,0);
   if (game) {
@@ -81,4 +84,4 @@ function frame(now: number): void {
   frameId = requestAnimationFrame(frame);
 }
 frameId = requestAnimationFrame(frame);
-if (import.meta.hot) import.meta.hot.dispose(() => { detach(); observer.disconnect(); debugView?.remove(); start.removeEventListener('click',onStart); cancelAnimationFrame(frameId); });
+if (import.meta.hot) import.meta.hot.dispose(() => { inputs.reset(); detach(); observer.disconnect(); debugView?.remove(); start.removeEventListener('click',onStart); cancelAnimationFrame(frameId); });

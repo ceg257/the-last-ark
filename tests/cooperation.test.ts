@@ -1,3 +1,4 @@
+import { fieldControls } from './helpers';
 import {describe,it,expect} from 'vitest';
 import {createGame,pause,stepGame,togglePause} from '../src/game/game';
 import {cooperationLevel} from '../src/levels/cooperation';
@@ -31,7 +32,7 @@ describe('development cooperation scene',()=>{
       }
       const fields:[boolean,boolean]=[stage===0||stage===2,stage===0||stage===3];
       if(fields[0])p1Steps++;if(fields[1])p2Steps++;
-      stepGame(g,{...NO_CONTROLS,fields});
+      stepGame(g,fieldControls(fields));
     }
     expect(g.phase).toBe('completed');expect(p1Steps).toBeGreaterThan(0);expect(p2Steps).toBeGreaterThan(0);
     expect(g.bodies.find(b=>b.id==='rock-a')!.position.y).toBeGreaterThan(500);

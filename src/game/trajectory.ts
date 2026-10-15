@@ -22,8 +22,10 @@ export function predictTrajectory(game: GameState, seconds = PREDICTION_SECONDS)
   const simulation: GameState = structuredClone(state);
   simulation.phase = 'running';
   const input: Controls = {
-    movement: [{ x: 0, y: 0 }, { x: 0, y: 0 }],
-    fields: [simulation.players[0].active, simulation.players[1].active],
+    players: [
+      { moveX: 0, moveY: 0, abilityActive: simulation.players[0].active },
+      { moveX: 0, moveY: 0, abilityActive: simulation.players[1].active },
+    ],
   };
   const ship = simulation.bodies.find(body => body.kind === 'ship')!;
   if (!finite(ship.position) || !finite(ship.velocity)) return result;

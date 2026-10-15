@@ -1,10 +1,12 @@
+import { fieldControls } from './helpers';
 import {describe,it,expect} from 'vitest';
-import {movePlayer} from '../src/input/movement';
+import {movePlayer} from '../src/physics/player';
 import {firstLevel} from '../src/levels/first';
 import {length,sub} from '../src/physics/vector';
 import {createGame,stepGame,togglePause,pause,retryGame,saveCheckpoint} from '../src/game/game';
 import {NO_CONTROLS} from '../src/game/types';
 import {Keyboard} from '../src/input/keyboard';
+import {createControls} from '../src/input/intent';
 import {FixedClock} from '../src/game/clock';
 import {efficiency} from '../src/game/scoring';
 import {telemetry} from '../src/render/canvas';
@@ -25,16 +27,16 @@ describe('independent control-node dynamics',()=>{
     g.bodies[0].position={x:450,y:300};g.bodies[0].velocity={x:0,y:0};
     const inactive=structuredClone(g);togglePause(g);togglePause(inactive);
     for(const key of ['KeyD','KeyS','ArrowLeft','ArrowUp','KeyF','Enter'])k.keyDown(key);
-    for(let i=0;i<24;i++){stepGame(g,k.read());stepGame(inactive,{...k.read(),fields:[false,false]});}
+    for(let i=0;i<24;i++){const input=k.read();stepGame(g,input);stepGame(inactive,createControls({...input.players[0],abilityActive:false},{...input.players[1],abilityActive:false}));}
     expect(length(g.players[0].velocity)).toBeCloseTo(260);expect(length(g.players[1].velocity)).toBeCloseTo(260);
     expect(g.players.map(p=>p.position)).toEqual(inactive.players.map(p=>p.position));
     expect(g.players.every(p=>p.active)).toBe(true);expect(g.bodies[0].velocity).not.toEqual(inactive.bodies[0].velocity);
-    k.keyDown('KeyF',true);k.keyDown('Enter',true);expect(k.read().fields).toEqual([true,true]);
+    k.keyDown('KeyF',true);k.keyDown('Enter',true);expect(k.read().players.map(p => p.abilityActive)).toEqual([true,true]);
   });
   it('accelerates/brakes identically at different render rates',()=>{
     const results=[30,60,144].map(fps=>{
       const g=createGame(firstLevel),clock=new FixedClock();
-      for(let second=0;second<4;second++)for(let i=0;i<fps;i++)clock.advance(1/fps,()=>stepGame(g,{...NO_CONTROLS,movement:second<2?[{x:1,y:1},{x:-1,y:0}]:NO_CONTROLS.movement}));
+      for(let second=0;second<4;second++)for(let i=0;i<fps;i++)clock.advance(1/fps,()=>stepGame(g,second<2?createControls({moveX:1,moveY:1},{moveX:-1}):NO_CONTROLS));
       return g;
     });
     expect(results[0]).toEqual(results[1]);expect(results[1]).toEqual(results[2]);
@@ -42,7 +44,7 @@ describe('independent control-node dynamics',()=>{
   it('predicts existing node inertia and braking with exactly the live rules',()=>{
     const g=createGame(firstLevel);g.players[0].active=true;g.players[0].velocity={x:80,y:30};
     const prediction=predictTrajectory(g,3);togglePause(g);
-    for(let i=0;i<180;i++){stepGame(g,{...NO_CONTROLS,fields:[true,false]});if((i+1)%6===0)expect(g.bodies[0].position).toEqual(prediction.points[(i+1)/6]);}
+    for(let i=0;i<180;i++){stepGame(g,fieldControls([true,false]));if((i+1)%6===0)expect(g.bodies[0].position).toEqual(prediction.points[(i+1)/6]);}
     expect(length(g.players[0].velocity)).toBe(0);
   });
   it('shows positions, velocities, actual field acceleration and elapsed time only as telemetry',()=>{
@@ -55,7 +57,7 @@ describe('optional level efficiency',()=>{
   it('accumulates actual curved path length, excludes planning and restores checkpoint progress',()=>{
     const g=createGame(firstLevel);g.bodies=g.bodies.filter(b=>b.kind==='ship');togglePause(g);
     let sum=0;
-    for(let i=0;i<180;i++){const before={...g.bodies[0].position};stepGame(g,{...NO_CONTROLS,fields:[true,false]});sum+=length(sub(g.bodies[0].position,before));}
+    for(let i=0;i<180;i++){const before={...g.bodies[0].position};stepGame(g,fieldControls([true,false]));sum+=length(sub(g.bodies[0].position,before));}
     expect(g.distance).toBe(sum);expect(sum).toBeGreaterThan(length(sub(g.bodies[0].position,firstLevel.bodies[0].position)));
     pause(g);const distance=g.distance,time=g.elapsed;for(let i=0;i<60;i++)stepGame(g,NO_CONTROLS);
     expect(g.distance).toBe(distance);expect(g.elapsed).toBe(time);saveCheckpoint(g,'score');

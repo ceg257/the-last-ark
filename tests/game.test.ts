@@ -1,14 +1,16 @@
+import { fieldControls } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { createGame, pause, stepGame, togglePause } from '../src/game/game';
 import { FixedClock } from '../src/game/clock';
 import { NO_CONTROLS } from '../src/game/types';
 import { firstLevel } from '../src/levels/first';
 import { Keyboard } from '../src/input/keyboard';
+import { createControls } from '../src/input/intent';
 
 describe('game lifecycle and rules', () => {
   it('preserves bodies while ready/paused but lets both players reposition', () => {
     const g = createGame(firstLevel); const bodies = structuredClone(g.bodies);
-    const input = { movement: [{ x: 1, y: 0 }, { x: -1, y: 0 }] as [{x:number;y:number},{x:number;y:number}], fields: [true, true] as [boolean, boolean] };
+    const input = createControls({ moveX: 1, abilityActive: true }, { moveX: -1, abilityActive: true });
     stepGame(g, input); expect(g.bodies).toEqual(bodies);
     expect(g.players[0].position.x).toBeGreaterThan(firstLevel.players[0].position.x);
     expect(g.players[1].position.x).toBeLessThan(firstLevel.players[1].position.x);
@@ -26,7 +28,7 @@ describe('game lifecycle and rules', () => {
   });
   it('allows players beyond the viewport and normalizes diagonal movement', () => {
     const g = createGame(firstLevel); const before = { ...g.players[0].position };
-    const input = { movement: [{ x: 1, y: 1 }, { x: -1, y: -1 }] as [{x:number;y:number},{x:number;y:number}], fields: [false, false] as [boolean, boolean] };
+    const input = createControls({ moveX: 1, moveY: 1 }, { moveX: -1, moveY: -1 });
     stepGame(g, input);
     expect(Math.hypot(g.players[0].position.x - before.x, g.players[0].position.y - before.y)).toBeCloseTo(g.players[0].acceleration / 60 ** 2);
     for (let i = 0; i < 1000; i++) stepGame(g, input);
@@ -67,15 +69,15 @@ describe('fixed clock and input', () => {
   it('toggles F and Enter once per press, retaining fields on release and focus loss', () => {
     const k = new Keyboard(() => {});
     k.keyDown('KeyF'); k.keyUp('KeyF');
-    expect(k.read().fields).toEqual([true, false]);
+    expect(k.read().players.map(p => p.abilityActive)).toEqual([true, false]);
     k.keyDown('Enter'); k.keyDown('Enter', true); k.keyDown('Enter'); k.keyUp('Enter');
-    expect(k.read().fields).toEqual([true, true]);
+    expect(k.read().players.map(p => p.abilityActive)).toEqual([true, true]);
     k.keyDown('KeyW'); k.releaseKeys();
-    expect(k.read()).toEqual({ ...NO_CONTROLS, fields: [true, true] });
-    k.keyDown('KeyF'); k.keyUp('KeyF'); expect(k.read().fields).toEqual([false, true]);
-    k.keyDown('Enter'); k.keyUp('Enter'); expect(k.read().fields).toEqual([false, false]);
+    expect(k.read()).toEqual(fieldControls([true, true]));
+    k.keyDown('KeyF'); k.keyUp('KeyF'); expect(k.read().players.map(p => p.abilityActive)).toEqual([false, true]);
+    k.keyDown('Enter'); k.keyUp('Enter'); expect(k.read().players.map(p => p.abilityActive)).toEqual([false, false]);
     k.keyDown('KeyF'); k.keyUp('KeyF'); k.keyDown('KeyR');
-    expect(k.read().fields).toEqual([false, false]);
+    expect(k.read().players.map(p => p.abilityActive)).toEqual([false, false]);
   });
   it('produces the same simulated state at 30, 60 and 144 rendering FPS', () => {
     const states = [30, 60, 144].map(fps => {
@@ -93,7 +95,7 @@ describe('fixed clock and input', () => {
   it('tracks simultaneous keys, suppresses action repeat and clears stuck keys', () => {
     const actions: string[] = []; const k = new Keyboard(action => actions.push(action));
     for (const key of ['KeyW', 'KeyD', 'ArrowLeft', 'ArrowDown', 'KeyF', 'Enter']) expect(k.keyDown(key)).toBe(true);
-    expect(k.read()).toEqual({ movement: [{ x: 1, y: -1 }, { x: -1, y: 1 }], fields: [true, true] });
+    expect(k.read()).toEqual(createControls({ moveX: 1, moveY: -1, abilityActive: true }, { moveX: -1, moveY: 1, abilityActive: true }));
     k.keyDown('Space'); k.keyDown('Space', true); k.keyDown('Space'); expect(actions).toEqual(['toggle']);
     k.keyUp('Space'); k.keyDown('Space'); expect(actions).toEqual(['toggle', 'toggle']);
     k.keyDown('KeyR'); expect(actions.at(-1)).toBe('reset');

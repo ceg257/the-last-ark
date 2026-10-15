@@ -1,3 +1,4 @@
+import { fieldControls } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { createGame, FIXED_DT, stepGame, togglePause } from '../src/game/game';
 import { predictTrajectory, PREDICTION_SECONDS } from '../src/game/trajectory';
@@ -15,7 +16,7 @@ describe('real simulated trajectory', () => {
     const prediction = predictTrajectory(g, 4); togglePause(g);
     let sample = 1;
     for (let i = 0; i < 240; i++) {
-      stepGame(g, { ...NO_CONTROLS, fields: [true, false] });
+      stepGame(g, fieldControls([true, false]));
       if ((i + 1) % 6 === 0) expect(g.bodies[0].position).toEqual(prediction.points[sample++]);
     }
     expect(sample).toBe(prediction.points.length);
