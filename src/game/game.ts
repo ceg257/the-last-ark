@@ -1,5 +1,6 @@
 import type { Controls, GameState, Level } from './types';
-import { add, finite, limit, scale } from '../physics/vector';
+import { finite, length, sub } from '../physics/vector';
+import { movePlayer } from '../input/movement';
 import { integrate } from '../physics/world';
 import { sweptOverlap } from '../physics/collision';
 import { capabilities } from './entities';
@@ -19,7 +20,7 @@ export function createGame(level: Level): GameState {
         region: { shape: 'circle', center: config.port.position, radius: config.port.radius }, maxSpeed: config.port.maxEntrySpeed, fullContainment: true } }], triggers: [],
   };
   const game: GameState = { level: config, bodies: structuredClone(config.bodies), players: structuredClone(config.players), phase: 'ready', elapsed: 0,
-    message: '准备就绪 · Space 发射；可先调整玩家位置', mission: emptyMissionState() };
+    message: '准备就绪 · Space 发射；可先调整玩家位置', mission: emptyMissionState(), distance: 0 };
   saveCheckpoint(game, 'start');
   return game;
 }
@@ -42,15 +43,16 @@ export function stepGame(game: GameState, input: Controls, dt = FIXED_DT): void 
   const previous = new Map([...game.bodies, ...game.players].map(b => [b.id, { ...b.position }]));
   game.players.forEach((player, i) => {
     player.active = input.fields[i];
-    player.position = add(player.position, scale(limit(input.movement[i], 1), player.speed * dt));
+    movePlayer(player, input.movement[i], dt);
   });
   if (game.phase !== 'running') return;
-  const invalid = () => game.bodies.some(b => !finite(b.position) || !finite(b.velocity)) || game.players.some(p => !finite(p.position));
+  const invalid = () => game.bodies.some(b => !finite(b.position) || !finite(b.velocity)) || game.players.some(p => !finite(p.position) || !finite(p.velocity));
   if (invalid()) { lose(game, '模拟数值异常'); return; }
-  integrate(game.bodies, game.players, dt); game.elapsed += dt;
+  integrate(game.bodies, game.players, dt, game.level.stabilizationEnabled !== false); game.elapsed += dt;
   if (invalid()) { lose(game, '模拟数值异常'); return; }
   const ship = game.bodies.find(b => b.kind === 'ship');
   if (!ship) { lose(game, '关卡缺少方舟'); return; }
+  game.distance += length(sub(ship.position, previous.get(ship.id)!));
   const hazards = new SpatialIndex<typeof ship>();
   const dangerRadius = (b: typeof ship) => capabilities(b).collision === 'capture' ? b.captureRadius ?? b.radius : b.radius;
   for (const body of game.bodies) if (body !== ship && capabilities(body).collision !== 'none') {

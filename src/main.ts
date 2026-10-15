@@ -7,12 +7,19 @@ import { predictTrajectory } from './game/trajectory';
 import type { Trajectory } from './game/trajectory';
 import { SceneController } from './scenes/controller';
 import { createCamera, follow, resizeCamera, setZoom } from './camera/camera';
+import { scenes as registry } from './scenes/registry';
+import { developmentRegistry } from './debug/config';
+import { movementTelemetry } from './debug/telemetry';
 const canvas = document.querySelector<HTMLCanvasElement>('#game')!;
 const ctx = canvas.getContext('2d');
 if (!ctx) throw new Error('此浏览器不支持 Canvas 2D。');
 const status = document.querySelector<HTMLParagraphElement>('#telemetry')!;
 const start = document.querySelector<HTMLButtonElement>('#start')!;
-const scenes = new SceneController();
+const debug = import.meta.env.DEV && new URLSearchParams(location.search).get('dev') === '1';
+const scenes = new SceneController(debug ? developmentRegistry(registry,location.search) : registry);
+if (debug && new URLSearchParams(location.search).get('scene') === 'coop_test') scenes.enter('coop_test');
+const debugView = debug ? document.createElement('pre') : undefined;
+if (debugView) { debugView.id='debug'; debugView.style.whiteSpace='pre-wrap'; debugView.style.fontSize='12px'; document.querySelector('main')!.append(debugView); }
 const camera = createCamera({x:0,y:0});
 const clock = new FixedClock();
 let prediction: Trajectory = {points:[],seconds:0,outcome:'horizon'};
@@ -62,14 +69,16 @@ function frame(now: number): void {
     const ship = game.bodies.find(b => b.kind === 'ship')!;
     follow(camera,ship.position,ship.velocity,seconds);
     render(ctx!,game,prediction,camera); status.textContent = telemetry(game);
+    if (debugView) debugView.textContent = movementTelemetry(game);
     canvas.dataset.phase = game.phase; canvas.dataset.fields = game.players.map(p => p.active ? 'on' : 'off').join(',');
     canvas.dataset.prediction = prediction.outcome;
   } else {
     renderTitle(ctx!,camera); status.textContent = '标题 · 仅原试玩关可用'; canvas.dataset.phase = 'title';
     delete canvas.dataset.fields; delete canvas.dataset.prediction;
+    if (debugView) debugView.textContent = '开发模式：进入试玩，或使用 ?dev=1&scene=coop_test';
   }
   canvas.dataset.scene = scenes.scene; canvas.dataset.zoom = camera.zoom.toFixed(2);
   frameId = requestAnimationFrame(frame);
 }
 frameId = requestAnimationFrame(frame);
-if (import.meta.hot) import.meta.hot.dispose(() => { detach(); observer.disconnect(); start.removeEventListener('click',onStart); cancelAnimationFrame(frameId); });
+if (import.meta.hot) import.meta.hot.dispose(() => { detach(); observer.disconnect(); debugView?.remove(); start.removeEventListener('click',onStart); cancelAnimationFrame(frameId); });

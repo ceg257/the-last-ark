@@ -7,11 +7,14 @@ import { isVisible, viewBounds } from '../camera/camera';
 import { edgeMarker, mapPoint, navigationBounds } from '../camera/navigation';
 import { objectivePosition } from '../game/mission';
 import { visibleEntities } from './visibility';
+import { efficiency } from '../game/scoring';
 const STATUS = { ready: '待发射', running: '护航中', paused: '已暂停', completed: '安全抵达', failed: '任务失败' };
 export function telemetry(game: GameState): string {
   const ship = game.bodies.find(body => body.kind === 'ship')!;
+  const result = efficiency(game);
   return game.level.name + ' | ' + STATUS[game.phase] + ' | 速度 ' + length(ship.velocity).toFixed(1) + ' / 限速 ' + speedLimit(ship)
-    + ' | 方舟 (' + ship.position.x.toFixed(0) + ', ' + ship.position.y.toFixed(0) + ') | ' + game.elapsed.toFixed(1) + ' s';
+    + ' | 方舟 (' + ship.position.x.toFixed(0) + ', ' + ship.position.y.toFixed(0) + ') | ' + game.elapsed.toFixed(1) + ' s'
+    + (result ? ' | 航程 ' + result.distance.toFixed(1) + (result.stars ? ' | ' + '★'.repeat(result.stars) + '☆'.repeat(3-result.stars) : '') : '');
 }
 function circle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, fill = true): void {
   ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = color; ctx.strokeStyle = color; fill ? ctx.fill() : ctx.stroke();

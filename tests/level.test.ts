@@ -1,24 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { createGame, pause, stepGame, togglePause } from '../src/game/game';
-import type { Controls, GameState } from '../src/game/types';
 import { NO_CONTROLS } from '../src/game/types';
 import { firstLevel } from '../src/levels/first';
-import type { Vec2 } from '../src/physics/vector';
 import { length } from '../src/physics/vector';
 import { predictTrajectory } from '../src/game/trajectory';
 
-/** Uses only real eight-direction movement while paused: never teleports players or edits the ship. */
-function positionPlayer(game: GameState, index: 0 | 1, target: Vec2): void {
-  const tolerance = game.players[index].speed / 60 / 2 + 0.01;
-  for (let i = 0; i < 600; i++) {
-    const delta = { x: target.x - game.players[index].position.x, y: target.y - game.players[index].position.y };
-    if (Math.abs(delta.x) <= tolerance && Math.abs(delta.y) <= tolerance) return;
-    const controls: Controls = structuredClone(NO_CONTROLS);
-    controls.movement[index] = { x: Math.abs(delta.x) <= tolerance ? 0 : Math.sign(delta.x), y: Math.abs(delta.y) <= tolerance ? 0 : Math.sign(delta.y) };
-    stepGame(game, controls);
-  }
-  throw new Error('Player could not reach staging position');
-}
+import { positionPlayer } from './helpers';
 
 describe('playable first level, using only player movement and fields', () => {
   it.each([410, 420, 430])('can plan and verify a winning braking trajectory after launch cutoff x=%s', launchX => {

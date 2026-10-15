@@ -11,6 +11,13 @@ export interface Entity {
   radius: number;
   layer?: 'world' | 'background' | 'hidden';
 }
+export interface StabilizationConfig {
+  halfLife: number;
+  rampSeconds?: number;
+  sleepSpeed?: number;
+  fieldEpsilon?: number;
+}
+export interface StabilizationState { playerVelocity: Vec2; idleTime: number }
 export interface Body extends Entity {
   kind: Exclude<EntityKind, 'player'>;
   velocity: Vec2;
@@ -26,8 +33,13 @@ export interface Body extends Entity {
   emitsGravity?: boolean;
   collision?: 'none' | 'hazard' | 'capture';
   gravityRadius?: number;
+  stabilization?: StabilizationConfig;
+  stabilizationState?: StabilizationState;
 }
-export interface Player extends Entity { kind: 'player'; id: 'attractor' | 'repulsor'; speed: number; field: Field; active: boolean }
+export interface Player extends Entity {
+  kind: 'player'; id: 'attractor' | 'repulsor'; speed: number; field: Field; active: boolean;
+  velocity: Vec2; acceleration: number; braking: number;
+}
 export interface Port { position: Vec2; radius: number; maxEntrySpeed: number }
 export interface Level {
   id: string; name: string;
@@ -39,11 +51,15 @@ export interface Level {
   missionBounds?: Rect;
   mission?: Mission;
   seed?: number;
+  stabilizationEnabled?: boolean;
+  scoring?: { threeStarsSeconds: number; twoStarsSeconds: number };
+  mode?: 'mission' | 'exploration';
 }
 export type Phase = 'ready' | 'running' | 'paused' | 'completed' | 'failed';
 export interface GameState {
   level: Level; bodies: Body[]; players: [Player, Player]; phase: Phase; elapsed: number; message: string;
   mission: MissionState;
+  distance: number;
   pendingScene?: SceneId;
   checkpoint?: { id: string; snapshot: Omit<GameState, 'checkpoint'> };
 }

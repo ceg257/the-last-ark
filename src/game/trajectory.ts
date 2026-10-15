@@ -11,7 +11,8 @@ export interface Trajectory {
 }
 
 /** Forecast using the exact live rules on an isolated state copy.
- * Players remain at their CURRENT positions with their CURRENT toggle states.
+ * Players keep CURRENT toggle states and release movement: existing velocity
+ * follows the same assisted braking as live play (no instant forecast freeze).
  * Every celestial body keeps moving and attracting every other eligible body.
  */
 export function predictTrajectory(game: GameState, seconds = PREDICTION_SECONDS): Trajectory {

@@ -2,6 +2,7 @@ import { firstLevel } from '../levels/first';
 import type { SceneRegistry } from './types';
 export const scenes: SceneRegistry = {
   title: { id: 'title', name: 'THE LAST ARK', status: 'available' },
+  coop_test: { id: 'coop_test', name: '开发合作测试', status: 'planned' },
   prototype: { id: 'prototype', name: '原试玩 / 绕行与制动', status: 'available', level: firstLevel },
   tutorial_part_1: { id: 'tutorial_part_1', name: 'Level 0 · 引力与斥力', status: 'planned' },
   tutorial_part_2: { id: 'tutorial_part_2', name: 'Level 0 · 可移动天体', status: 'planned' },

@@ -28,7 +28,7 @@ describe('game lifecycle and rules', () => {
     const g = createGame(firstLevel); const before = { ...g.players[0].position };
     const input = { movement: [{ x: 1, y: 1 }, { x: -1, y: -1 }] as [{x:number;y:number},{x:number;y:number}], fields: [false, false] as [boolean, boolean] };
     stepGame(g, input);
-    expect(Math.hypot(g.players[0].position.x - before.x, g.players[0].position.y - before.y)).toBeCloseTo(260 / 60);
+    expect(Math.hypot(g.players[0].position.x - before.x, g.players[0].position.y - before.y)).toBeCloseTo(g.players[0].acceleration / 60 ** 2);
     for (let i = 0; i < 1000; i++) stepGame(g, input);
     expect(g.players[0].position.x).toBeGreaterThan(g.level.width); expect(g.players[0].position.y).toBeGreaterThan(g.level.height);
     expect(g.players[1].position.x).toBeLessThan(0); expect(g.players[1].position.y).toBeLessThan(0);
