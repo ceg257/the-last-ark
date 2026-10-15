@@ -32,7 +32,7 @@ export function predictTrajectory(game: GameState, seconds = PREDICTION_SECONDS)
   result.points.push({ ...ship.position });
   const steps = Math.ceil(Math.min(PREDICTION_SECONDS, Math.max(0, seconds)) / FIXED_DT);
   for (let i = 0; i < steps; i++) {
-    stepGame(simulation, input);
+    stepGame(simulation, input, FIXED_DT, /* forecast */ true);
     // stepGame mutates phase; TypeScript otherwise retains the earlier literal narrowing.
     const phase = simulation.phase as GameState['phase'];
     result.seconds = (i + 1) * FIXED_DT;

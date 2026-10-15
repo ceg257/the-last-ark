@@ -13,12 +13,17 @@ export function gravitationalMass(body: Body): number {
  * Source motion comes from the same integrator as the ship, enabling gravity assists.
  * Range/softening/caps remain deliberate gameplay approximations, not real astronomy.
  */
+export const emptyField = (): Field =>
+  ({ radius: 0, strength: 0, softening: 0, maxAcceleration: 0, polarity: 1 });
+/** In-place form: identical arithmetic to `bodyGravity`, no per-call object. */
+export function bodyGravityInto(field: Field, body: Body): Field {
+  field.strength = 110_000 * gravitationalMass(body) / REFERENCE_VOLUME;
+  field.radius = body.gravityRadius ?? Math.max(120, body.radius * 330 / REFERENCE_RADIUS);
+  field.softening = Math.max(24, body.radius * 85 / REFERENCE_RADIUS);
+  field.maxAcceleration = 170;
+  field.polarity = 1;
+  return field;
+}
 export function bodyGravity(body: Body): Field {
-  return {
-    strength: 110_000 * gravitationalMass(body) / REFERENCE_VOLUME,
-    radius: body.gravityRadius ?? Math.max(120, body.radius * 330 / REFERENCE_RADIUS),
-    softening: Math.max(24, body.radius * 85 / REFERENCE_RADIUS),
-    maxAcceleration: 170,
-    polarity: 1,
-  };
+  return bodyGravityInto(emptyField(), body);
 }

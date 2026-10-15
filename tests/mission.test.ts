@@ -83,6 +83,56 @@ describe('mission conditions and checkpoints',()=>{
   });
 });
 
+/** Arrival is a conjunction -- fully inside the region AND under the speed limit -- and
+ * before this it failed silently. The ark would sit on the station with its predicted
+ * trajectory ending right there, no completion, and nothing saying why; that reads as a
+ * broken win condition. These pin the explanation, and pin that it is live-only. */
+describe('arrival feedback',()=>{
+  const setup=(offset:number,speed:number)=>{
+    const g=createGame(firstLevel);g.phase='running';
+    const ark=g.bodies.find(b=>b.id==='ark')!,station=g.bodies.find(b=>b.id==='station')!;
+    ark.position={x:station.position.x+offset,y:station.position.y};ark.velocity={x:speed,y:0};
+    stepGame(g,NO_CONTROLS);
+    return g;
+  };
+  it('explains a dock refused for speed rather than refusing it silently',()=>{
+    const g=setup(0,65);
+    expect(g.phase).toBe('running');
+    expect(g.message).toContain('65.0');
+    expect(g.message).toContain('48');
+  });
+  it('explains a dock refused because the hull is not fully inside',()=>{
+    // 64 units off centre: the ark's 8-unit hull pokes past the 68-unit station radius, so
+    // containment fails even though the ark is sitting visibly on top of the station.
+    const g=setup(64,10);
+    expect(g.phase).toBe('running');
+    expect(g.message).toContain('尚未完全进入空间港');
+  });
+  it('adds nothing once the condition actually holds',()=>{
+    const g=setup(0,10);
+    expect(g.phase).toBe('completed');
+    expect(g.message).toContain('安全抵达');
+  });
+  it('stays quiet while the ark is still crossing the map',()=>{
+    const g=setup(600,65);
+    expect(g.phase).toBe('running');
+    expect(g.message).toBe('绕开中央天体，低速进入空间港（≤ 48）');
+  });
+  it('outranks a mission hint, which is set once by a trigger and never cleared',()=>{
+    const g=setup(0,65);
+    g.mission.hint='已保存绕行检查点 · 制动至 ≤ 48 入港；R 恢复';
+    stepGame(g,NO_CONTROLS);
+    expect(g.message).toContain('减速后再靠近');
+  });
+  it('leaves the message untouched on a forecast step',()=>{
+    // The message is written after `if (forecast) return;` (game.ts), so a forecast must not
+    // carry one back -- 720 of them run per prediction and none may touch live state.
+    const g=setup(0,65);const message=g.message;
+    stepGame(g,NO_CONTROLS,1/60,true);
+    expect(g.message).toBe(message);
+  });
+});
+
 describe('layered scene state machine',()=>{
   it('starts at title and keeps later levels explicitly unavailable',()=>{
     const controller=new SceneController();expect(controller.scene).toBe('title');controller.step(NO_CONTROLS);expect(controller.game).toBeUndefined();

@@ -96,3 +96,44 @@ export function objectivePosition(game: GameState): Vec2 | undefined {
   if (!target) return game.level.port?.position;
   return 'position' in target ? target.position : findEntity(game, target.entityId)?.position;
 }
+/** Why an arrival objective has not completed even though the ark is already at the
+ * destination.
+ *
+ * Arrival is a conjunction -- fully inside the region AND slow enough -- and until this
+ * existed, failing either half was completely silent. The ark would sit on the station with
+ * its predicted trajectory ending right there and no completion, which reads as a broken win
+ * condition rather than as "you are still doing 65 into the dock". The mission label states
+ * the rule, but nothing stated that the rule was the thing currently blocking.
+ *
+ * Only the two speed-limited arrival conditions can be blocked this way; a positional
+ * objective is either satisfied or the ark is not there yet, which is self-evident. */
+export interface ArrivalStatus { speed: number; maxSpeed: number; contained: boolean }
+export function arrivalStatus(game: GameState): ArrivalStatus | undefined {
+  const condition = currentObjective(game)?.condition;
+  if (!condition) return undefined;
+  let region: Region;
+  let maxSpeed: number | undefined;
+  if (condition.type === 'near_entity') {
+    const target = findEntity(game, condition.targetId);
+    if (!target) return undefined;
+    region = { shape: 'circle', center: target.position, radius: target.radius };
+    maxSpeed = condition.maxSpeed;
+  } else if (condition.type === 'speed_in_region') {
+    region = condition.region;
+    maxSpeed = condition.maxSpeed;
+  } else return undefined;
+  if (maxSpeed === undefined || region.shape !== 'circle') return undefined;
+  const entity = findEntity(game, condition.entityId);
+  const body = entity && game.bodies.find(item => item.id === entity.id);
+  if (!entity || !body) return undefined;
+  // Inline rather than `sub`/`length`: this runs on the live step, and the live step's whole
+  // discipline (world.ts:26) is that it does not allocate per call.
+  const distance = Math.hypot(body.position.x - region.center.x, body.position.y - region.center.y);
+  // Only once the ark has reached the destination at all -- touching the rim counts, still
+  // crossing the map does not. Otherwise every step of the approach would nag.
+  if (distance > region.radius + entity.radius) return undefined;
+  const speed = length(body.velocity);
+  const contained = distance + (condition.fullContainment ? entity.radius : 0) <= region.radius;
+  if (contained && speed <= maxSpeed) return undefined; // the condition holds; nothing to explain
+  return { speed, maxSpeed, contained };
+}

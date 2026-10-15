@@ -4,6 +4,7 @@ import { FixedClock } from './game/clock';
 import { Keyboard } from './input/keyboard';
 import { PlayerInputs } from './input/sources';
 import { render, renderTitle, telemetry } from './render/canvas';
+import { createVisualState, parseQuality, updateVisuals } from './render/scene-visuals';
 import { predictTrajectory } from './game/trajectory';
 import type { Trajectory } from './game/trajectory';
 import { SceneController } from './scenes/controller';
@@ -23,6 +24,8 @@ const debugView = debug ? document.createElement('pre') : undefined;
 if (debugView) { debugView.id='debug'; debugView.style.whiteSpace='pre-wrap'; debugView.style.fontSize='12px'; document.querySelector('main')!.append(debugView); }
 const camera = createCamera({x:0,y:0});
 const clock = new FixedClock();
+// Effects state lives entirely outside GameState; ?fx= selects the quality spec.
+const visuals = createVisualState(parseQuality(location.search));
 let prediction: Trajectory = {points:[],seconds:0,outcome:'horizon'};
 let lastPredictionTime = -Infinity;
 let predictionKey = '';
@@ -71,12 +74,14 @@ function frame(now: number): void {
     }
     const ship = game.bodies.find(b => b.kind === 'ship')!;
     follow(camera,ship.position,ship.velocity,seconds);
-    render(ctx!,game,prediction,camera); status.textContent = telemetry(game);
+    updateVisuals(visuals, game, scenes.revision, seconds);
+    render(ctx!,game,prediction,camera,visuals); status.textContent = telemetry(game);
     if (debugView) debugView.textContent = movementTelemetry(game);
     canvas.dataset.phase = game.phase; canvas.dataset.fields = game.players.map(p => p.active ? 'on' : 'off').join(',');
     canvas.dataset.prediction = prediction.outcome;
   } else {
-    renderTitle(ctx!,camera); status.textContent = '标题 · 仅原试玩关可用'; canvas.dataset.phase = 'title';
+    updateVisuals(visuals, undefined, scenes.revision, seconds);
+    renderTitle(ctx!,camera,visuals); status.textContent = '标题 · 仅原试玩关可用'; canvas.dataset.phase = 'title';
     delete canvas.dataset.fields; delete canvas.dataset.prediction;
     if (debugView) debugView.textContent = '开发模式：进入试玩，或使用 ?dev=1&scene=coop_test';
   }

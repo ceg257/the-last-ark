@@ -21,6 +21,26 @@ describe('real simulated trajectory', () => {
     }
     expect(sample).toBe(prediction.points.length);
   });
+  it('interleaving forecasts with live stepping leaves the live run bit-identical', () => {
+    // stepGame's previous-positions buffer is module-level and shared: a forecast and the
+    // live game write the same body ids into it in turn (game.ts snapshotPrevious), and a
+    // forecast is a clone -- same ids, different positions. If one run's snapshot leaked
+    // into the other's, the swept collision test and every mission condition that reads
+    // `previous` would be deciding on stale positions. This is the cheapest way to catch
+    // that: run two identical games, and only drive one of them through 180 forecasts.
+    const interleaved = createGame(firstLevel); interleaved.players[0].active = true; togglePause(interleaved);
+    const alone = createGame(firstLevel); alone.players[0].active = true; togglePause(alone);
+    for (let i = 0; i < 120; i++) {
+      predictTrajectory(interleaved, 3);
+      stepGame(interleaved, fieldControls([true, false]));
+      stepGame(alone, fieldControls([true, false]));
+    }
+    expect(interleaved.bodies.map(b => b.position)).toEqual(alone.bodies.map(b => b.position));
+    // distance is accumulated straight out of `previous` (game.ts: distance += length(sub(...))),
+    // so it moves the moment a snapshot from the wrong run is used, even when nothing collides.
+    expect(interleaved.distance).toEqual(alone.distance);
+    expect(predictTrajectory(interleaved, 2).points).toEqual(predictTrajectory(alone, 2).points);
+  });
   it('curves with attraction/repulsion and refreshes from new source locations', () => {
     const g = createGame(firstLevel);
     const off = predictTrajectory(g, 4);
