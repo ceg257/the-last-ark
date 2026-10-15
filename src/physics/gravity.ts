@@ -1,10 +1,11 @@
 import type { Body, Field } from '../game/types';
+import { capabilities } from '../game/entities';
 
 // Match the original radius-65 planet, while deriving every body's field from size.
 const REFERENCE_RADIUS = 65;
 const REFERENCE_VOLUME = 4 / 3 * Math.PI * REFERENCE_RADIUS ** 3;
 export function gravitationalMass(body: Body): number {
-  const density = body.density ?? (body.kind === 'blackHole' ? 40 : 1);
+  const density = capabilities(body).density;
   return 4 / 3 * Math.PI * body.radius ** 3 * density;
 }
 
@@ -15,7 +16,7 @@ export function gravitationalMass(body: Body): number {
 export function bodyGravity(body: Body): Field {
   return {
     strength: 110_000 * gravitationalMass(body) / REFERENCE_VOLUME,
-    radius: Math.max(120, body.radius * 330 / REFERENCE_RADIUS),
+    radius: body.gravityRadius ?? Math.max(120, body.radius * 330 / REFERENCE_RADIUS),
     softening: Math.max(24, body.radius * 85 / REFERENCE_RADIUS),
     maxAcceleration: 170,
     polarity: 1,

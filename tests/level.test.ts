@@ -31,14 +31,14 @@ describe('playable first level, using only player movement and fields', () => {
       // Same operation as pausing, toggling P1 off/P2 on and inspecting the preview.
       stepGame(g, { ...NO_CONTROLS, fields: [false, true] });
       forecast = predictTrajectory(g);
-      if (forecast.outcome === 'won') break;
+      if (forecast.outcome === 'completed') break;
       togglePause(g);
       for (let frame = 0; frame < 6; frame++) stepGame(g, { ...NO_CONTROLS, fields: [true, false] });
       pause(g);
     }
-    expect(forecast.outcome).toBe('won'); togglePause(g);
+    expect(forecast.outcome).toBe('completed'); togglePause(g);
     for (let i = 0; i < 720 && g.phase === 'running'; i++) stepGame(g, { ...NO_CONTROLS, fields: [false, true] });
-    expect(g.phase).toBe('won'); expect(g.bodies[0].position).toEqual(forecast.points.at(-1));
+    expect(g.phase).toBe('completed'); expect(g.bodies[0].position).toEqual(forecast.points.at(-1));
   });
   for (const launchX of [410, 420, 430]) for (const turnX of [640, 650, 660]) for (const aimY of [380, 390, 400]) {
     it(`wins with launch cutoff x=${launchX}, turn x=${turnX}, tangent y=${aimY}`, () => {
@@ -55,13 +55,13 @@ describe('playable first level, using only player movement and fields', () => {
           expect(g.bodies).toEqual(before);
           togglePause(g); stage = 2;
         }
-        const projectedY = ship.position.y + (g.level.port.position.x - ship.position.x) * ship.velocity.y / ship.velocity.x;
+        const projectedY = ship.position.y + (g.level.port!.position.x - ship.position.x) * ship.velocity.y / ship.velocity.x;
         if (stage === 2 && projectedY >= aimY) stage = 3;
         const fields: [boolean, boolean] = [stage === 0 || stage === 2, stage === 3];
         if (fields[0]) p1Steps++; if (fields[1]) p2Steps++;
         stepGame(g, { ...NO_CONTROLS, fields });
       }
-      expect(g.phase).toBe('won');
+      expect(g.phase).toBe('completed');
       expect(length(g.bodies[0].velocity)).toBeLessThanOrEqual(48);
       expect(g.elapsed).toBeLessThan(30);
       expect(p1Steps).toBeGreaterThan(0); expect(p2Steps).toBeGreaterThan(0);

@@ -1,10 +1,11 @@
 import type { Controls } from '../game/types';
-const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyF', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Space', 'KeyR']);
+const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyF', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Space', 'KeyR', 'Escape', 'Minus', 'Equal', 'Digit0']);
+type Action = 'toggle' | 'reset' | 'restart' | 'blur' | 'title' | 'zoom-in' | 'zoom-out' | 'zoom-reset';
 export class Keyboard {
   readonly pressed = new Set<string>();
   private fields: [boolean, boolean] = [false, false];
-  constructor(private onAction: (action: 'toggle' | 'reset' | 'blur') => void) {}
-  keyDown(code: string, repeat = false): boolean {
+  constructor(private onAction: (action: Action) => void) {}
+  keyDown(code: string, repeat = false, shift = false): boolean {
     if (!GAME_KEYS.has(code)) return false;
     const wasPressed = this.pressed.has(code);
     this.pressed.add(code);
@@ -12,7 +13,11 @@ export class Keyboard {
       if (code === 'KeyF') this.fields[0] = !this.fields[0];
       if (code === 'Enter') this.fields[1] = !this.fields[1];
       if (code === 'Space') this.onAction('toggle');
-      if (code === 'KeyR') { this.clear(); this.pressed.add(code); this.onAction('reset'); }
+      if (code === 'KeyR') { this.clear(); this.pressed.add(code); this.onAction(shift ? 'restart' : 'reset'); }
+      if (code === 'Escape') this.onAction('title');
+      if (code === 'Minus') this.onAction('zoom-out');
+      if (code === 'Equal') this.onAction('zoom-in');
+      if (code === 'Digit0') this.onAction('zoom-reset');
     }
     return true;
   }
@@ -25,7 +30,7 @@ export class Keyboard {
     return { movement: [{ x: axis('KeyD', 'KeyA'), y: axis('KeyS', 'KeyW') }, { x: axis('ArrowRight', 'ArrowLeft'), y: axis('ArrowDown', 'ArrowUp') }], fields: [...this.fields] };
   }
   attach(target: Window): () => void {
-    const down = (event: KeyboardEvent) => { if (this.keyDown(event.code, event.repeat)) event.preventDefault(); };
+    const down = (event: KeyboardEvent) => { if (this.keyDown(event.code, event.repeat, event.shiftKey)) event.preventDefault(); };
     const up = (event: KeyboardEvent) => { if (this.keyUp(event.code)) event.preventDefault(); };
     const blur = () => { this.releaseKeys(); this.onAction('blur'); };
     const visibility = () => { if (target.document.hidden) blur(); };

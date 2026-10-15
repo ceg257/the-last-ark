@@ -13,3 +13,7 @@ canvas:focus-visible { outline: 2px solid #64758f; }
 .blue { color: #409eff; } .gold { color: #e9bd48; }
 .hint { color: #92a0b3; font-size: 13px; line-height: 1.8; }
 @media (max-width: 720px) { main { padding: 12px; } header { display: block; } h1 small { display: block; margin: 6px 0; } }
+
+canvas { height: clamp(380px, 65dvh, 720px); }
+button { padding: 8px 14px; margin-bottom: 10px; cursor: pointer; }
+[hidden] { display: none; }

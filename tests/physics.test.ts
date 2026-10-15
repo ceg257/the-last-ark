@@ -72,6 +72,6 @@ describe('field forces', () => {
   it('the first level fails without intervention', () => {
     const g = createGame(firstLevel); togglePause(g);
     for (let i = 0; i < 3600 && g.phase === 'running'; i++) stepGame(g, NO_CONTROLS);
-    expect(g.phase).toBe('lost'); expect(g.message).toContain('撞击');
+    expect(g.phase).toBe('failed'); expect(g.message).toContain('撞击');
   });
 });

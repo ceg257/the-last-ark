@@ -56,7 +56,7 @@ describe('volume-derived gravity and orbital integration', () => {
   });
   it('lets density increase black-hole gravity independently of visible size', () => {
     const rock = structuredClone(firstLevel.bodies[2]);
-    const hole = { ...rock, kind: 'blackHole' as const };
+    const hole = { ...rock, kind: 'black_hole' as const };
     expect(bodyGravity(hole).strength / bodyGravity(rock).strength).toBeCloseTo(40);
     expect(bodyGravity({ ...rock, density: 2 }).strength / bodyGravity(rock).strength).toBeCloseTo(2);
   });

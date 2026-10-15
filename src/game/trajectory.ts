@@ -7,7 +7,7 @@ export const PREDICTION_SECONDS = 12;
 export interface Trajectory {
   points: Vec2[];
   seconds: number;
-  outcome: 'horizon' | 'won' | 'lost';
+  outcome: 'horizon' | 'completed' | 'failed' | 'transition';
 }
 
 /** Forecast using the exact live rules on an isolated state copy.
@@ -16,8 +16,9 @@ export interface Trajectory {
  */
 export function predictTrajectory(game: GameState, seconds = PREDICTION_SECONDS): Trajectory {
   const result: Trajectory = { points: [], seconds: 0, outcome: 'horizon' };
-  if (game.phase === 'won' || game.phase === 'lost') return result;
-  const simulation = structuredClone(game);
+  if (game.phase === 'completed' || game.phase === 'failed') return result;
+  const { checkpoint: _checkpoint, ...state } = game;
+  const simulation: GameState = structuredClone(state);
   simulation.phase = 'running';
   const input: Controls = {
     movement: [{ x: 0, y: 0 }, { x: 0, y: 0 }],
@@ -32,10 +33,11 @@ export function predictTrajectory(game: GameState, seconds = PREDICTION_SECONDS)
     // stepGame mutates phase; TypeScript otherwise retains the earlier literal narrowing.
     const phase = simulation.phase as GameState['phase'];
     result.seconds = (i + 1) * FIXED_DT;
-    if (finite(ship.position) && ((i + 1) % 6 === 0 || phase !== 'running' || i === steps - 1)) {
+    if (finite(ship.position) && ((i + 1) % 6 === 0 || phase !== 'running' || simulation.pendingScene || i === steps - 1)) {
       result.points.push({ ...ship.position });
     }
-    if (phase === 'won' || phase === 'lost') {
+    if (simulation.pendingScene) { result.outcome = 'transition'; break; }
+    if (phase === 'completed' || phase === 'failed') {
       result.outcome = phase;
       break;
     }

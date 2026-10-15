@@ -7,7 +7,7 @@ export class FixedClock {
     this.accumulator += Math.min(seconds, 0.25);
     let count = 0;
     while (this.accumulator + 1e-10 >= FIXED_DT) {
-      step(); this.accumulator -= FIXED_DT; count++;
+      this.accumulator -= FIXED_DT; count++; step();
     }
     return count;
   }

@@ -21,41 +21,44 @@ describe('game lifecycle and rules', () => {
     const a = createGame(firstLevel); const initial = structuredClone(a); togglePause(a);
     for (let i = 0; i < 120; i++) stepGame(a, NO_CONTROLS);
     expect(createGame(firstLevel)).toEqual(initial);
-    a.players[0].field.radius = 1; a.level.port.radius = 1;
+    a.players[0].field.radius = 1; a.level.port!.radius = 1;
     expect(createGame(firstLevel)).toEqual(initial);
   });
-  it('bounds players and normalizes diagonal movement', () => {
+  it('allows players beyond the viewport and normalizes diagonal movement', () => {
     const g = createGame(firstLevel); const before = { ...g.players[0].position };
     const input = { movement: [{ x: 1, y: 1 }, { x: -1, y: -1 }] as [{x:number;y:number},{x:number;y:number}], fields: [false, false] as [boolean, boolean] };
     stepGame(g, input);
     expect(Math.hypot(g.players[0].position.x - before.x, g.players[0].position.y - before.y)).toBeCloseTo(260 / 60);
     for (let i = 0; i < 1000; i++) stepGame(g, input);
-    expect(g.players[0].position).toEqual({ x: 1087, y: 607 }); expect(g.players[1].position).toEqual({ x: 13, y: 13 });
+    expect(g.players[0].position.x).toBeGreaterThan(g.level.width); expect(g.players[0].position.y).toBeGreaterThan(g.level.height);
+    expect(g.players[1].position.x).toBeLessThan(0); expect(g.players[1].position.y).toBeLessThan(0);
   });
-  it.each(['planet', 'asteroid', 'blackHole'] as const)('loses on %s collision', kind => {
+  it.each(['planet', 'asteroid', 'black_hole'] as const)('loses on %s collision', kind => {
     const g = createGame(firstLevel); g.bodies = g.bodies.slice(0, 2);
     g.bodies[1].kind = kind; g.bodies[1].captureRadius = 30;
     g.bodies[0].position = { ...g.bodies[1].position };
-    togglePause(g); stepGame(g, NO_CONTROLS); expect(g.phase).toBe('lost');
+    togglePause(g); stepGame(g, NO_CONTROLS); expect(g.phase).toBe('failed');
     const ended = structuredClone(g); togglePause(g); stepGame(g, NO_CONTROLS); expect(g).toEqual(ended);
   });
-  it('loses when the ship crosses the world bounds', () => {
+  it('only fails at explicitly configured mission bounds, not viewport edges', () => {
     const g = createGame(firstLevel); g.bodies[0].position.x = 1095;
-    togglePause(g); stepGame(g, NO_CONTROLS); expect(g.phase).toBe('lost');
+    togglePause(g); stepGame(g, NO_CONTROLS); expect(g.phase).toBe('running');
+    g.level.missionBounds = { minX: 0, minY: 0, maxX: 1100, maxY: 620 };
+    stepGame(g, NO_CONTROLS); expect(g.phase).toBe('failed');
   });
   it('wins only with full containment and speed at or below threshold', () => {
     for (const speed of [0, 47.9, 48, 48.1, 90]) {
-      const g = createGame(firstLevel); g.bodies = [g.bodies[0]];
-      g.bodies[0].position = { ...g.level.port.position }; g.bodies[0].velocity = { x: speed, y: 0 };
-      togglePause(g); stepGame(g, NO_CONTROLS); expect(g.phase).toBe(speed <= 48 ? 'won' : 'running');
+      const g = createGame(firstLevel); g.bodies = g.bodies.filter(b => b.kind === 'ship' || b.kind === 'station');
+      g.bodies[0].position = { ...g.level.port!.position }; g.bodies[0].velocity = { x: speed, y: 0 };
+      togglePause(g); stepGame(g, NO_CONTROLS); expect(g.phase).toBe(speed <= 48 ? 'completed' : 'running');
     }
-    const g = createGame(firstLevel); g.bodies = [g.bodies[0]];
+    const g = createGame(firstLevel); g.bodies = g.bodies.filter(b => b.kind === 'ship' || b.kind === 'station');
     g.bodies[0].position = { x: 1035, y: 340 }; g.bodies[0].velocity = { x: 0, y: 0 };
     togglePause(g); stepGame(g, NO_CONTROLS); expect(g.phase).toBe('running');
   });
   it('turns an invalid simulation into a recoverable failure', () => {
     const g = createGame(firstLevel); g.bodies[0].velocity.x = NaN;
-    togglePause(g); stepGame(g, NO_CONTROLS); expect(g.phase).toBe('lost'); expect(g.message).toContain('数值异常');
+    togglePause(g); stepGame(g, NO_CONTROLS); expect(g.phase).toBe('failed'); expect(g.message).toContain('数值异常');
     expect(createGame(firstLevel).phase).toBe('ready');
   });
 });
